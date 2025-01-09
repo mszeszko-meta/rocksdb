@@ -4003,7 +4003,7 @@ TEST_P(BackupEngineTestWithParam, BackupUsingDirectIO) {
 TEST_F(BackupEngineTest, BackgroundThreadCpuPriority) {
   std::atomic<CpuPriority> priority(CpuPriority::kNormal);
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->SetCallBack(
-      "BackupEngineImpl::Initialize:SetCpuPriority", [&](void* new_priority) {
+      "ThreadPool::Initialize:SetCpuPriority", [&](void* new_priority) {
         priority.store(*static_cast<CpuPriority*>(new_priority));
       });
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->EnableProcessing();

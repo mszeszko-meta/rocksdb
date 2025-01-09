@@ -52,6 +52,7 @@
 #include "util/string_util.h"
 #include "utilities/backup/backup_engine_impl.h"
 #include "utilities/checkpoint/checkpoint_impl.h"
+#include "utilities/thread_pool/thread_pool.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -126,6 +127,7 @@ void BackupEngineOptions::Dump(Logger* logger) const {
 }
 
 namespace {
+class BackupEngineThreadPool;
 // -------- BackupEngineImpl class ---------
 class BackupEngineImpl {
  public:
@@ -596,151 +598,6 @@ class BackupEngineImpl {
                              Temperature file_temp, RateLimiter* rate_limiter,
                              std::string* db_id, std::string* db_session_id);
 
-  struct WorkItemResult {
-    WorkItemResult()
-        : size(0),
-          expected_src_temperature(Temperature::kUnknown),
-          current_src_temperature(Temperature::kUnknown) {}
-
-    WorkItemResult(const WorkItemResult& other) = delete;
-    WorkItemResult& operator=(const WorkItemResult& other) = delete;
-
-    WorkItemResult(WorkItemResult&& o) noexcept { *this = std::move(o); }
-
-    WorkItemResult& operator=(WorkItemResult&& o) noexcept {
-      size = o.size;
-      checksum_hex = std::move(o.checksum_hex);
-      db_id = std::move(o.db_id);
-      db_session_id = std::move(o.db_session_id);
-      io_status = std::move(o.io_status);
-      expected_src_temperature = o.expected_src_temperature;
-      current_src_temperature = o.current_src_temperature;
-      return *this;
-    }
-
-    ~WorkItemResult() {
-      // The Status needs to be ignored here for two reasons.
-      // First, if the BackupEngineImpl shuts down with jobs outstanding, then
-      // it is possible that the Status in the future/promise is never read,
-      // resulting in an unchecked Status. Second, if there are items in the
-      // channel when the BackupEngineImpl is shutdown, these will also have
-      // Status that have not been checked.  This
-      // TODO: Fix those issues so that the Status
-      io_status.PermitUncheckedError();
-    }
-    uint64_t size;
-    std::string checksum_hex;
-    std::string db_id;
-    std::string db_session_id;
-    IOStatus io_status;
-    Temperature expected_src_temperature = Temperature::kUnknown;
-    Temperature current_src_temperature = Temperature::kUnknown;
-  };
-
-  enum WorkItemType : uint64_t {
-    CopyOrCreate = 1U,
-  };
-
-  // Exactly one of src_path and contents must be non-empty. If src_path is
-  // non-empty, the file is copied from this pathname. Otherwise, if contents is
-  // non-empty, the file will be created at dst_path with these contents.
-  struct WorkItem {
-    std::string src_path;
-    std::string dst_path;
-    Temperature src_temperature;
-    Temperature dst_temperature;
-    std::string contents;
-    Env* src_env;
-    Env* dst_env;
-    EnvOptions src_env_options;
-    bool sync;
-    RateLimiter* rate_limiter;
-    uint64_t size_limit;
-    Statistics* stats;
-    std::promise<WorkItemResult> result;
-    std::function<void()> progress_callback;
-    std::string src_checksum_func_name;
-    std::string src_checksum_hex;
-    std::string db_id;
-    std::string db_session_id;
-    WorkItemType type;
-
-    WorkItem()
-        : src_temperature(Temperature::kUnknown),
-          dst_temperature(Temperature::kUnknown),
-          src_env(nullptr),
-          dst_env(nullptr),
-          src_env_options(),
-          sync(false),
-          rate_limiter(nullptr),
-          size_limit(0),
-          stats(nullptr),
-          src_checksum_func_name(kUnknownFileChecksumFuncName),
-          type(WorkItemType::CopyOrCreate) {}
-
-    WorkItem(const WorkItem&) = delete;
-    WorkItem& operator=(const WorkItem&) = delete;
-
-    WorkItem(WorkItem&& o) noexcept { *this = std::move(o); }
-
-    WorkItem& operator=(WorkItem&& o) noexcept {
-      src_path = std::move(o.src_path);
-      dst_path = std::move(o.dst_path);
-      src_temperature = std::move(o.src_temperature);
-      dst_temperature = std::move(o.dst_temperature);
-      contents = std::move(o.contents);
-      src_env = o.src_env;
-      dst_env = o.dst_env;
-      src_env_options = std::move(o.src_env_options);
-      sync = o.sync;
-      rate_limiter = o.rate_limiter;
-      size_limit = o.size_limit;
-      stats = o.stats;
-      result = std::move(o.result);
-      progress_callback = std::move(o.progress_callback);
-      src_checksum_func_name = std::move(o.src_checksum_func_name);
-      src_checksum_hex = std::move(o.src_checksum_hex);
-      db_id = std::move(o.db_id);
-      db_session_id = std::move(o.db_session_id);
-      src_temperature = o.src_temperature;
-      type = std::move(o.type);
-      return *this;
-    }
-
-    WorkItem(std::string _src_path, std::string _dst_path,
-             const Temperature _src_temperature,
-             const Temperature _dst_temperature, std::string _contents,
-             Env* _src_env, Env* _dst_env, EnvOptions _src_env_options,
-             bool _sync, RateLimiter* _rate_limiter, uint64_t _size_limit,
-             Statistics* _stats, std::function<void()> _progress_callback = {},
-             const std::string& _src_checksum_func_name =
-                 kUnknownFileChecksumFuncName,
-             const std::string& _src_checksum_hex = "",
-             const std::string& _db_id = "",
-             const std::string& _db_session_id = "",
-             WorkItemType _type = WorkItemType::CopyOrCreate)
-        : src_path(std::move(_src_path)),
-          dst_path(std::move(_dst_path)),
-          src_temperature(_src_temperature),
-          dst_temperature(_dst_temperature),
-          contents(std::move(_contents)),
-          src_env(_src_env),
-          dst_env(_dst_env),
-          src_env_options(std::move(_src_env_options)),
-          sync(_sync),
-          rate_limiter(_rate_limiter),
-          size_limit(_size_limit),
-          stats(_stats),
-          progress_callback(_progress_callback),
-          src_checksum_func_name(_src_checksum_func_name),
-          src_checksum_hex(_src_checksum_hex),
-          db_id(_db_id),
-          db_session_id(_db_session_id),
-          type(_type) {}
-
-    ~WorkItem() = default;
-  };
-
   struct BackupAfterCopyOrCreateWorkItem {
     std::future<WorkItemResult> result;
     bool shared;
@@ -815,9 +672,9 @@ class BackupEngineImpl {
 
   bool initialized_;
   std::mutex byte_report_mutex_;
-  mutable channel<WorkItem> work_items_;
-  std::vector<port::Thread> threads_;
-  std::atomic<CpuPriority> threads_cpu_priority_;
+
+  friend class BackupEngineThreadPool;
+  std::unique_ptr<BackupEngineThreadPool> pool_;
 
   // Certain operations like PurgeOldBackups and DeleteBackup will trigger
   // automatic GarbageCollect (true) unless we've already done one in this
@@ -1027,6 +884,18 @@ class BackupEngineImplThreadSafe : public BackupEngine,
   BackupEngineImpl impl_;
 };
 
+class BackupEngineThreadPool : public ThreadPool {
+ public:
+  BackupEngineThreadPool(BackupEngineImpl* backup_engine)
+      : ThreadPool("backup engine"), impl_(backup_engine) {}
+
+  void DoWork(WorkItem& work_item, WorkItemResult& result) override;
+
+ private:
+  // BackupEngineThreadPool instance is instantiated by the backup engine.
+  BackupEngineImpl* impl_;
+};
+
 }  // namespace
 
 IOStatus BackupEngine::Open(const BackupEngineOptions& options, Env* env,
@@ -1046,7 +915,7 @@ namespace {
 BackupEngineImpl::BackupEngineImpl(const BackupEngineOptions& options,
                                    Env* db_env, bool read_only)
     : initialized_(false),
-      threads_cpu_priority_(),
+      pool_(std::make_unique<BackupEngineThreadPool>(this)),
       latest_backup_id_(0),
       latest_valid_backup_id_(0),
       stop_backup_(false),
@@ -1069,10 +938,6 @@ BackupEngineImpl::BackupEngineImpl(const BackupEngineOptions& options,
 }
 
 BackupEngineImpl::~BackupEngineImpl() {
-  work_items_.sendEof();
-  for (auto& t : threads_) {
-    t.join();
-  }
   LogFlush(options_.info_log);
   for (const auto& it : corrupt_backups_) {
     it.second.first.PermitUncheckedError();
@@ -1268,91 +1133,8 @@ IOStatus BackupEngineImpl::Initialize() {
   ROCKS_LOG_INFO(options_.info_log, "Latest valid backup is %u",
                  latest_valid_backup_id_);
 
-  // set up threads perform copies from work_items_ in the
-  // background
-  threads_cpu_priority_ = CpuPriority::kNormal;
-  threads_.reserve(options_.max_background_operations);
-  for (int t = 0; t < options_.max_background_operations; t++) {
-    threads_.emplace_back([this]() {
-#if defined(_GNU_SOURCE) && defined(__GLIBC_PREREQ)
-#if __GLIBC_PREREQ(2, 12)
-      pthread_setname_np(pthread_self(), "backup_engine");
-#endif
-#endif
-      CpuPriority current_priority = CpuPriority::kNormal;
-      WorkItem work_item;
-      uint64_t bytes_toward_next_callback = 0;
-      while (work_items_.read(work_item)) {
-        CpuPriority priority = threads_cpu_priority_;
-        if (current_priority != priority) {
-          TEST_SYNC_POINT_CALLBACK(
-              "BackupEngineImpl::Initialize:SetCpuPriority", &priority);
-          port::SetCpuPriority(0, priority);
-          current_priority = priority;
-        }
-        // `bytes_read` and `bytes_written` stats are enabled based on
-        // compile-time support and cannot be dynamically toggled. So we do not
-        // need to worry about `PerfLevel` here, unlike many other
-        // `IOStatsContext` / `PerfContext` stats.
-        uint64_t prev_bytes_read = IOSTATS(bytes_read);
-        uint64_t prev_bytes_written = IOSTATS(bytes_written);
+  pool_->Initialize(options_.max_background_operations);
 
-        WorkItemResult result;
-        Temperature temp = work_item.src_temperature;
-        if (work_item.type == WorkItemType::CopyOrCreate) {
-          result.io_status = CopyOrCreateFile(
-              work_item.src_path, work_item.dst_path, work_item.contents,
-              work_item.size_limit, work_item.src_env, work_item.dst_env,
-              work_item.src_env_options, work_item.sync, work_item.rate_limiter,
-              work_item.progress_callback, &temp, work_item.dst_temperature,
-              &bytes_toward_next_callback, &result.size, &result.checksum_hex);
-
-          RecordTick(work_item.stats, BACKUP_READ_BYTES,
-                     IOSTATS(bytes_read) - prev_bytes_read);
-          RecordTick(work_item.stats, BACKUP_WRITE_BYTES,
-                     IOSTATS(bytes_written) - prev_bytes_written);
-
-          result.db_id = work_item.db_id;
-          result.db_session_id = work_item.db_session_id;
-          result.expected_src_temperature = work_item.src_temperature;
-          result.current_src_temperature = temp;
-          if (result.io_status.ok() && !work_item.src_checksum_hex.empty()) {
-            // unknown checksum function name implies no db table file checksum
-            // in db manifest; work_item.src_checksum_hex not empty means backup
-            // engine has calculated its crc32c checksum for the table file;
-            // therefore, we are able to compare the checksums.
-            if (work_item.src_checksum_func_name ==
-                    kUnknownFileChecksumFuncName ||
-                work_item.src_checksum_func_name == kDbFileChecksumFuncName) {
-              if (work_item.src_checksum_hex != result.checksum_hex) {
-                std::string checksum_info(
-                    "Expected checksum is " + work_item.src_checksum_hex +
-                    " while computed checksum is " + result.checksum_hex);
-                result.io_status = IOStatus::Corruption(
-                    "Checksum mismatch after copying to " + work_item.dst_path +
-                    ": " + checksum_info);
-              }
-            } else {
-              // FIXME(peterd): dead code?
-              std::string checksum_function_info(
-                  "Existing checksum function is " +
-                  work_item.src_checksum_func_name +
-                  " while provided checksum function is " +
-                  kBackupFileChecksumFuncName);
-              ROCKS_LOG_INFO(
-                  options_.info_log,
-                  "Unable to verify checksum after copying to %s: %s\n",
-                  work_item.dst_path.c_str(), checksum_function_info.c_str());
-            }
-          }
-        } else {
-          result.io_status = IOStatus::InvalidArgument(
-              "Unknown work item type: " + std::to_string(work_item.type));
-        }
-        work_item.result.set_value(std::move(result));
-      }
-    });
-  }
   ROCKS_LOG_INFO(options_.info_log, "Initialized BackupEngine");
   return IOStatus::OK();
 }
@@ -1373,8 +1155,8 @@ IOStatus BackupEngineImpl::CreateNewBackupWithMetadata(
   }
 
   if (options.decrease_background_thread_cpu_priority) {
-    if (options.background_thread_cpu_priority < threads_cpu_priority_) {
-      threads_cpu_priority_.store(options.background_thread_cpu_priority);
+    if (options.background_thread_cpu_priority < pool_->GetCpuPriority()) {
+      pool_->SetCpuPriority(options.background_thread_cpu_priority);
     }
   }
 
@@ -1567,7 +1349,7 @@ IOStatus BackupEngineImpl::CreateNewBackupWithMetadata(
         if (maybe_exclude_files[i].exclude_decision) {
           new_backup.get()->AddExcludedFile(e.second.dst_relative);
         } else {
-          work_items_.write(std::move(e.first));
+          pool_->AddWorkItem(e.first);
           backup_items_to_finish.push_back(std::move(e.second));
         }
       }
@@ -2039,11 +1821,11 @@ IOStatus BackupEngineImpl::RestoreDBFromBackup(
         file_info->temp, "" /* contents */, src_env, db_env_,
         EnvOptions() /* src_env_options */, options_.sync,
         options_.restore_rate_limiter.get(), file_info->size,
-        nullptr /* stats */);
+        nullptr /* stats */, WorkItemType::CopyOrCreate);
     RestoreAfterCopyOrCreateWorkItem after_copy_or_create_work_item(
         copy_or_create_work_item.result.get_future(), file, dst,
         file_info->checksum_hex);
-    work_items_.write(std::move(copy_or_create_work_item));
+    pool_->AddWorkItem(copy_or_create_work_item);
     restore_items_to_finish.push_back(
         std::move(after_copy_or_create_work_item));
   }
@@ -2534,8 +2316,8 @@ IOStatus BackupEngineImpl::AddBackupFileWorkItem(
         src_dir.empty() ? "" : src_path, *copy_dest_path, src_temperature,
         Temperature::kUnknown /*dst_temp*/, contents, db_env_, backup_env_,
         src_env_options, options_.sync, rate_limiter, size_limit, stats,
-        progress_callback, src_checksum_func_name, checksum_hex, db_id,
-        db_session_id);
+        WorkItemType::CopyOrCreate, progress_callback, src_checksum_func_name,
+        checksum_hex, db_id, db_session_id);
     BackupAfterCopyOrCreateWorkItem after_copy_or_create_work_item(
         copy_or_create_work_item.result.get_future(), shared, need_to_copy,
         backup_env_, temp_dest_path, final_dest_path, dst_relative);
@@ -2550,7 +2332,7 @@ IOStatus BackupEngineImpl::AddBackupFileWorkItem(
       // the checkpoint
       ROCKS_LOG_INFO(options_.info_log, "Copying %s to %s", fname.c_str(),
                      copy_dest_path->c_str());
-      work_items_.write(std::move(copy_or_create_work_item));
+      pool_->AddWorkItem(copy_or_create_work_item);
       backup_items_to_finish.push_back(
           std::move(after_copy_or_create_work_item));
     }
@@ -3360,6 +3142,72 @@ IOStatus BackupEngineImpl::BackupMeta::StoreToFile(
                            nullptr);
   }
   return io_s;
+}
+
+// Exactly one of backups' WorkItem src_path and contents must be non-empty.
+// If src_path is non-empty, the file is copied from this pathname.
+// Otherwise, if contents is non-empty, the file will be created at dst_path
+// with these contents.
+void BackupEngineThreadPool::DoWork(WorkItem& work_item,
+                                    WorkItemResult& result) {
+  // `bytes_read` and `bytes_written` stats are enabled based on
+  // compile-time support and cannot be dynamically toggled. So we do not
+  // need to worry about `PerfLevel` here, unlike many other
+  // `IOStatsContext` / `PerfContext` stats.
+  uint64_t prev_bytes_read = IOSTATS(bytes_read);
+  uint64_t prev_bytes_written = IOSTATS(bytes_written);
+
+  if (work_item.type == WorkItemType::CopyOrCreate) {
+    uint64_t bytes_toward_next_callback = 0;
+    Temperature temp = work_item.src_temperature;
+    result.io_status = impl_->CopyOrCreateFile(
+        work_item.src_path, work_item.dst_path, work_item.contents,
+        work_item.size_limit, work_item.src_env, work_item.dst_env,
+        work_item.src_env_options, work_item.sync, work_item.rate_limiter,
+        work_item.progress_callback, &temp, work_item.dst_temperature,
+        &bytes_toward_next_callback, &result.size, &result.checksum_hex);
+
+    RecordTick(work_item.stats, BACKUP_READ_BYTES,
+               IOSTATS(bytes_read) - prev_bytes_read);
+    RecordTick(work_item.stats, BACKUP_WRITE_BYTES,
+               IOSTATS(bytes_written) - prev_bytes_written);
+
+    result.db_id = work_item.db_id;
+    result.db_session_id = work_item.db_session_id;
+    result.expected_src_temperature = work_item.src_temperature;
+    result.current_src_temperature = temp;
+    if (result.io_status.ok() && !work_item.src_checksum_hex.empty()) {
+      // unknown checksum function name implies no db table file checksum
+      // in db manifest; work_item.src_checksum_hex not empty means backup
+      // engine has calculated its crc32c checksum for the table file;
+      // therefore, we are able to compare the checksums.
+      if (work_item.src_checksum_func_name == kUnknownFileChecksumFuncName ||
+          work_item.src_checksum_func_name == kDbFileChecksumFuncName) {
+        if (work_item.src_checksum_hex != result.checksum_hex) {
+          std::string checksum_info(
+              "Expected checksum is " + work_item.src_checksum_hex +
+              " while computed checksum is " + result.checksum_hex);
+          result.io_status =
+              IOStatus::Corruption("Checksum mismatch after copying to " +
+                                   work_item.dst_path + ": " + checksum_info);
+        }
+      } else {
+        // FIXME(peterd): dead code?
+        std::string checksum_function_info(
+            "Existing checksum function is " +
+            work_item.src_checksum_func_name +
+            " while provided checksum function is " +
+            kBackupFileChecksumFuncName);
+        ROCKS_LOG_INFO(impl_->options_.info_log,
+                       "Unable to verify checksum after copying to %s: %s\n",
+                       work_item.dst_path.c_str(),
+                       checksum_function_info.c_str());
+      }
+    }
+  } else {
+    result.io_status = IOStatus::InvalidArgument(
+        "Unknown work item type: " + std::to_string(work_item.type));
+  }
 }
 }  // namespace
 
