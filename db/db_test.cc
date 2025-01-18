@@ -5374,6 +5374,7 @@ TEST_F(DBTest, DynamicLevelCompressionPerLevel) {
   for (const auto& file : cf_meta.levels[4].files) {
     listener->SetExpectedFileName(dbname_ + file.name);
     ASSERT_OK(dbfull()->DEPRECATED_DeleteFile(file.name));
+    //EXPECT_OK(env_->DeleteFile(dbname_ + file.name));
   }
   listener->VerifyMatchedCount(cf_meta.levels[4].files.size());
 
