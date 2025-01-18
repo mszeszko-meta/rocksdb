@@ -5374,8 +5374,17 @@ TEST_F(DBTest, DynamicLevelCompressionPerLevel) {
   for (const auto& file : cf_meta.levels[4].files) {
     listener->SetExpectedFileName(dbname_ + file.name);
     ASSERT_OK(dbfull()->DEPRECATED_DeleteFile(file.name));
-    //EXPECT_OK(env_->DeleteFile(dbname_ + file.name));
+    // EXPECT_OK(env_->DeleteFile(dbname_ + file.name));
   }
+  // dbfull()->CompactRange(CompactRangeOptions(), nullptr, nullptr);
+  // ASSERT_OK(db_->Flush(FlushOptions(false, false)));
+  // // Job id == 0 means that this is not our background process, but rather
+  // // user thread
+  // JobContext job_context(0);
+  // DBImpl* dbi = static_cast_with_check<DBImpl>(db_);
+  // dbi->PurgeObsoleteFiles(job_context);
+  // job_context.Clean();
+
   listener->VerifyMatchedCount(cf_meta.levels[4].files.size());
 
   int num_keys = 0;
