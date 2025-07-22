@@ -3446,6 +3446,179 @@ class Benchmark {
     }
   }
 
+  void GenerateKeyFromIntForSeek_v2(int tid, int threads_count, Slice* key) {
+    char* key_ptr = const_cast<char*>(key->data());
+    memset(key_ptr, (char)48, 100);
+    memset(key_ptr, (char)0, 5);
+
+    auto rescaledTid = tid * 32 / threads_count;
+    switch (rescaledTid) {
+      case 0:
+        key_ptr[5] = (char)0;
+        key_ptr[6] = (char)0;
+        key_ptr[7] = (char)0;
+        break;
+      case 1:
+        key_ptr[5] = (char)1;
+        key_ptr[6] = (char)49;
+        key_ptr[7] = (char)45;
+        break;
+      case 2:
+        key_ptr[5] = (char)2;
+        key_ptr[6] = (char)98;
+        key_ptr[7] = (char)90;
+        break;
+      case 3:
+        key_ptr[5] = (char)3;
+        key_ptr[6] = (char)-109;
+        key_ptr[7] = (char)-121;
+        break;
+      case 4:
+        key_ptr[5] = (char)4;
+        key_ptr[6] = (char)-60;
+        key_ptr[7] = (char)-76;
+        break;
+      case 5:
+        key_ptr[5] = (char)5;
+        key_ptr[6] = (char)-11;
+        key_ptr[7] = (char)-31;
+        break;
+      case 6:
+        key_ptr[5] = (char)7;
+        key_ptr[6] = (char)39;
+        key_ptr[7] = (char)14;
+        break;
+      case 7:
+        key_ptr[5] = (char)8;
+        key_ptr[6] = (char)88;
+        key_ptr[7] = (char)59;
+        break;
+      case 8:
+        key_ptr[5] = (char)9;
+        key_ptr[6] = (char)-119;
+        key_ptr[7] = (char)104;
+        break;
+      case 9:
+        key_ptr[5] = (char)10;
+        key_ptr[6] = (char)-70;
+        key_ptr[7] = (char)-107;
+        break;
+      case 10:
+        key_ptr[5] = (char)11;
+        key_ptr[6] = (char)-21;
+        key_ptr[7] = (char)-62;
+        break;
+      case 11:
+        key_ptr[5] = (char)13;
+        key_ptr[6] = (char)28;
+        key_ptr[7] = (char)-17;
+        break;
+      case 12:
+        key_ptr[5] = (char)14;
+        key_ptr[6] = (char)78;
+        key_ptr[7] = (char)28;
+        break;
+      case 13:
+        key_ptr[5] = (char)15;
+        key_ptr[6] = (char)127;
+        key_ptr[7] = (char)73;
+        break;
+      case 14:
+        key_ptr[5] = (char)16;
+        key_ptr[6] = (char)-80;
+        key_ptr[7] = (char)118;
+        break;
+      case 15:
+        key_ptr[5] = (char)17;
+        key_ptr[6] = (char)-31;
+        key_ptr[7] = (char)-93;
+        break;
+      case 16:
+        key_ptr[5] = (char)19;
+        key_ptr[6] = (char)18;
+        key_ptr[7] = (char)-48;
+        break;
+      case 17:
+        key_ptr[5] = (char)20;
+        key_ptr[6] = (char)67;
+        key_ptr[7] = (char)-3;
+        break;
+      case 18:
+        key_ptr[5] = (char)21;
+        key_ptr[6] = (char)117;
+        key_ptr[7] = (char)42;
+        break;
+      case 19:
+        key_ptr[5] = (char)22;
+        key_ptr[6] = (char)-90;
+        key_ptr[7] = (char)87;
+        break;
+      case 20:
+        key_ptr[5] = (char)23;
+        key_ptr[6] = (char)-41;
+        key_ptr[7] = (char)-124;
+        break;
+      case 21:
+        key_ptr[5] = (char)25;
+        key_ptr[6] = (char)8;
+        key_ptr[7] = (char)-79;
+        break;
+      case 22:
+        key_ptr[5] = (char)26;
+        key_ptr[6] = (char)57;
+        key_ptr[7] = (char)-34;
+        break;
+      case 23:
+        key_ptr[5] = (char)27;
+        key_ptr[6] = (char)107;
+        key_ptr[7] = (char)11;
+        break;
+      case 24:
+        key_ptr[5] = (char)28;
+        key_ptr[6] = (char)-100;
+        key_ptr[7] = (char)56;
+        break;
+      case 25:
+        key_ptr[5] = (char)29;
+        key_ptr[6] = (char)-51;
+        key_ptr[7] = (char)101;
+        break;
+      case 26:
+        key_ptr[5] = (char)30;
+        key_ptr[6] = (char)-2;
+        key_ptr[7] = (char)-110;
+        break;
+      case 27:
+        key_ptr[5] = (char)32;
+        key_ptr[6] = (char)47;
+        key_ptr[7] = (char)-65;
+        break;
+      case 28:
+        key_ptr[5] = (char)33;
+        key_ptr[6] = (char)96;
+        key_ptr[7] = (char)-20;
+        break;
+      case 29:
+        key_ptr[5] = (char)34;
+        key_ptr[6] = (char)-110;
+        key_ptr[7] = (char)25;
+        break;
+      case 30:
+        key_ptr[5] = (char)35;
+        key_ptr[6] = (char)-61;
+        key_ptr[7] = (char)70;
+        break;
+      case 31:
+        key_ptr[5] = (char)36;
+        key_ptr[6] = (char)-12;
+        key_ptr[7] = (char)115;
+        break;
+      default:
+        // Handle out-of-range X if needed
+        break;
+    }
+  }
+
   std::string GetPathForMultiple(std::string base_name, size_t id) {
     if (!base_name.empty()) {
 #ifndef OS_WIN
@@ -3581,7 +3754,8 @@ class Benchmark {
 
       // Both fillseqdeterministic and filluniquerandomdeterministic
       // fill the levels except the max level with UNIQUE_RANDOM
-      // and fill the max level with fillseq and filluniquerandom, respectively
+      // and fill the max level with fillseq and filluniquerandom,
+      // respectively
       if (name == "fillseqdeterministic" ||
           name == "filluniquerandomdeterministic") {
         if (!FLAGS_disable_auto_compactions) {
@@ -3853,7 +4027,8 @@ class Benchmark {
           }
           multi_dbs_.clear();
         }
-        Open(&open_options_, hooks);  // use open_options for the last accessed
+        Open(&open_options_,
+             hooks);  // use open_options for the last accessed
       }
 
       if (method != nullptr) {
@@ -3920,10 +4095,10 @@ class Benchmark {
           s = db_.db->StartBlockCacheTrace(block_cache_trace_options_,
                                            std::move(block_cache_trace_writer));
           if (!s.ok()) {
-            fprintf(
-                stderr,
-                "Encountered an error when starting block cache tracing, %s\n",
-                s.ToString().c_str());
+            fprintf(stderr,
+                    "Encountered an error when starting block cache tracing, "
+                    "%s\n",
+                    s.ToString().c_str());
             ErrorExit();
           }
           fprintf(stdout, "Tracing block cache accesses to: [%s]\n",
@@ -4500,7 +4675,8 @@ class Benchmark {
       block_based_options.block_cache = cache_;
       block_based_options.cache_usage_options.options_overrides.insert(
           {CacheEntryRole::kCompressionDictionaryBuildingBuffer,
-           {/*.charged = */ FLAGS_charge_compression_dictionary_building_buffer
+           {/*.charged = */
+            FLAGS_charge_compression_dictionary_building_buffer
                 ? CacheEntryRoleOptions::Decision::kEnabled
                 : CacheEntryRoleOptions::Decision::kDisabled}});
       block_based_options.cache_usage_options.options_overrides.insert(
@@ -4846,10 +5022,10 @@ class Benchmark {
 
   void InitializeOptionsGeneral(Options* opts, ToolHooks& hooks) {
     // Be careful about what is set here to avoid accidentally overwriting
-    // settings already configured by OPTIONS file. Only configure settings that
-    // are needed for the benchmark to run, settings for shared objects that
-    // were not configured already, settings that require dynamically invoking
-    // APIs, and settings for the benchmark itself.
+    // settings already configured by OPTIONS file. Only configure settings
+    // that are needed for the benchmark to run, settings for shared objects
+    // that were not configured already, settings that require dynamically
+    // invoking APIs, and settings for the benchmark itself.
     Options& options = *opts;
 
     // Always set these since they are harmless when not needed and prevent
@@ -4866,10 +5042,10 @@ class Benchmark {
     if (table_options != nullptr) {
       if (FLAGS_cache_size > 0) {
         // This violates this function's rules on when to set options. But we
-        // have to do it because the case of unconfigured block cache in OPTIONS
-        // file is indistinguishable (it is sanitized to 32MB by this point, not
-        // nullptr), and our regression tests assume this will be the shared
-        // block cache, even with OPTIONS file provided.
+        // have to do it because the case of unconfigured block cache in
+        // OPTIONS file is indistinguishable (it is sanitized to 32MB by this
+        // point, not nullptr), and our regression tests assume this will be
+        // the shared block cache, even with OPTIONS file provided.
         table_options->block_cache = cache_;
       }
       if (table_options->filter_policy == nullptr) {
@@ -4918,8 +5094,8 @@ class Benchmark {
             FLAGS_rate_limiter_bytes_per_sec,
             FLAGS_rate_limiter_refill_period_us, 10 /* fairness */,
             // TODO: replace this with a more general FLAG for deciding
-            // RateLimiter::Mode as now we also rate-limit foreground reads e.g,
-            // Get()/MultiGet()
+            // RateLimiter::Mode as now we also rate-limit foreground reads
+            // e.g, Get()/MultiGet()
             FLAGS_rate_limit_bg_reads ? RateLimiter::Mode::kReadsOnly
                                       : RateLimiter::Mode::kWritesOnly,
             FLAGS_rate_limiter_auto_tuned,
@@ -4965,8 +5141,18 @@ class Benchmark {
       ReadOptions read_opts;  // before read_options_ initialized
       read_opts.total_order_seek = true;
       Iterator* iter = db_.db->NewIterator(read_opts);
+      int i = 78124;
       for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
         keys_.emplace_back(iter->key().ToString());
+        i++;
+        if (i % 78125 == 0) {
+          fprintf(stdout, "size: %ld\n", iter->key().size());
+          for (size_t j = 0; j < 100; ++j) {
+            fprintf(stdout, "%c ", iter->key().data()[j]);
+          }
+          fprintf(stdout, "\n\n");
+          fprintf(stdout, "Found at position: %d\n", i);
+        }
       }
       delete iter;
       FLAGS_num = keys_.size();
@@ -5162,8 +5348,8 @@ class Benchmark {
         : rand_(rand), mode_(mode), num_(num), next_(0) {
       if (mode_ == UNIQUE_RANDOM) {
         // NOTE: if memory consumption of this approach becomes a concern,
-        // we can either break it into pieces and only random shuffle a section
-        // each time. Alternatively, use a bit map implementation
+        // we can either break it into pieces and only random shuffle a
+        // section each time. Alternatively, use a bit map implementation
         // (https://reviews.facebook.net/differential/diff/54627/)
         values_.resize(num_);
         for (uint64_t i = 0; i < num_; ++i) {
@@ -5314,10 +5500,11 @@ class Benchmark {
     if (kNumDispAndPersEntries > 0) {
       if ((write_mode != UNIQUE_RANDOM) || (writes_per_range_tombstone_ > 0) ||
           (p > 0.0)) {
-        fprintf(
-            stderr,
-            "Disposable/persistent deletes are not compatible with overwrites "
-            "and DeleteRanges; and are only supported in filluniquerandom.\n");
+        fprintf(stderr,
+                "Disposable/persistent deletes are not compatible with "
+                "overwrites "
+                "and DeleteRanges; and are only supported in "
+                "filluniquerandom.\n");
         ErrorExit();
       }
       if (FLAGS_disposable_entries_value_size < 0 ||
@@ -5445,8 +5632,8 @@ class Benchmark {
                 batch.Delete(key);
               } else {
                 // We use same rand_num as seed for key and column family so
-                // that we can deterministically find the cfh corresponding to a
-                // particular key while reading the key.
+                // that we can deterministically find the cfh corresponding to
+                // a particular key while reading the key.
                 batch.Delete(db_with_cfh->GetCfh(rand_num), key);
               }
               // A delete only includes Key+Timestamp (no value).
@@ -5458,9 +5645,9 @@ class Benchmark {
             } else {
               assert(false);  // should never reach this point.
             }
-            // If disposable_entries_q needs to be updated (ie: when a selective
-            // insert+delete was successfully completed, pop the job out of the
-            // queue).
+            // If disposable_entries_q needs to be updated (ie: when a
+            // selective insert+delete was successfully completed, pop the job
+            // out of the queue).
             if (!disposable_entries_q[id].empty() &&
                 (disposable_entries_q[id].front().first <
                  FLAGS_env->NowMicros()) &&
@@ -5533,9 +5720,9 @@ class Benchmark {
             ((disposable_entries_index[id] % kNumDispAndPersEntries) == 0)) {
           // Queue contains [timestamp, starting_idx],
           // timestamp = current_time + delay (minimum aboslute time when to
-          // start inserting the selective deletes) starting_idx = index in the
-          // keygen of the rand_num to generate the key of the first KV entry to
-          // delete (= key of the first selective delete).
+          // start inserting the selective deletes) starting_idx = index in
+          // the keygen of the rand_num to generate the key of the first KV
+          // entry to delete (= key of the first selective delete).
           disposable_entries_q[id].push(std::make_pair(
               FLAGS_env->NowMicros() +
                   FLAGS_disposable_entries_delete_delay /* timestamp */,
@@ -6027,8 +6214,8 @@ class Benchmark {
     while (key_rand < FLAGS_num) {
       DBWithColumnFamilies* db_with_cfh = SelectDBWithCfh(thread);
       // We use same key_rand as seed for key and column family so that we can
-      // deterministically find the cfh corresponding to a particular key, as it
-      // is done in DoWrite method.
+      // deterministically find the cfh corresponding to a particular key, as
+      // it is done in DoWrite method.
       GenerateKeyFromInt(key_rand, FLAGS_num, &key);
       key_rand++;
       read++;
@@ -6208,8 +6395,8 @@ class Benchmark {
     while (!duration.Done(1)) {
       DBWithColumnFamilies* db_with_cfh = SelectDBWithCfh(thread);
       // We use same key_rand as seed for key and column family so that we can
-      // deterministically find the cfh corresponding to a particular key, as it
-      // is done in DoWrite method.
+      // deterministically find the cfh corresponding to a particular key, as
+      // it is done in DoWrite method.
       if (entries_per_batch_ > 1 && FLAGS_multiread_stride) {
         if (++num_keys == entries_per_batch_) {
           num_keys = 0;
@@ -6621,15 +6808,16 @@ class Benchmark {
   // the two-term-exponential distribution: f(x) = a*exp(b*x) + c*exp(d*x).
   // However, we cannot directly use the inverse function to decide a
   // key-range from a random distribution. To achieve it, we create a list of
-  // KeyrangeUnit, each KeyrangeUnit occupies a range of integers whose size is
-  // decided based on the hotness of the key-range. When a random value is
-  // generated based on uniform distribution, we map it to the KeyrangeUnit Vec
-  // and one KeyrangeUnit is selected. The probability of a  KeyrangeUnit being
-  // selected is the same as the hotness of this KeyrangeUnit. After that, the
-  // key can be randomly allocated to the key-range of this KeyrangeUnit, or we
-  // can based on the power distribution (y=ax^b) to generate the offset of
-  // the key in the selected key-range. In this way, we generate the keyID
-  // based on the hotness of the prefix and also the key hotness distribution.
+  // KeyrangeUnit, each KeyrangeUnit occupies a range of integers whose size
+  // is decided based on the hotness of the key-range. When a random value is
+  // generated based on uniform distribution, we map it to the KeyrangeUnit
+  // Vec and one KeyrangeUnit is selected. The probability of a  KeyrangeUnit
+  // being selected is the same as the hotness of this KeyrangeUnit. After
+  // that, the key can be randomly allocated to the key-range of this
+  // KeyrangeUnit, or we can based on the power distribution (y=ax^b) to
+  // generate the offset of the key in the selected key-range. In this way, we
+  // generate the keyID based on the hotness of the prefix and also the key
+  // hotness distribution.
   class GenerateTwoTermExpKeys {
    public:
     // Avoid uninitialized warning-as-error in some compilers
@@ -6713,7 +6901,8 @@ class Benchmark {
       return Status::OK();
     }
 
-    // Generate the Key ID according to the input ini_rand and key distribution
+    // Generate the Key ID according to the input ini_rand and key
+    // distribution
     int64_t DistGetKeyID(int64_t ini_rand, double key_dist_a,
                          double key_dist_b) {
       int64_t keyrange_rand = ini_rand % keyrange_rand_max_;
@@ -7015,6 +7204,7 @@ class Benchmark {
 
     Duration duration(FLAGS_duration, reads_);
     char value_buffer[256];
+
     std::unique_ptr<ManagedSnapshot> snapshot = nullptr;
     if (FLAGS_explicit_snapshot) {
       snapshot = std::make_unique<ManagedSnapshot>(db_.db);
@@ -7024,8 +7214,15 @@ class Benchmark {
     }
     while (!duration.Done(1)) {
       int64_t seek_pos = thread->rand.Next() % FLAGS_num;
-      GenerateKeyFromIntForSeek(static_cast<uint64_t>(seek_pos), FLAGS_num,
-                                &key);
+      // GenerateKeyFromIntForSeek(static_cast<uint64_t>(seek_pos), FLAGS_num,
+      //                           &key);
+      GenerateKeyFromIntForSeek_v2(thread->tid, FLAGS_threads, &key);
+      options.auto_readahead_size = FLAGS_auto_readahead_size;
+      if (thread->tid != FLAGS_threads && options.auto_readahead_size) {
+        GenerateKeyFromIntForSeek_v2(thread->tid + 1, FLAGS_threads,
+                                     &upper_bound);
+        options.iterate_upper_bound = &upper_bound;
+      }
       if (FLAGS_max_scan_distance != 0) {
         if (FLAGS_reverse_iterator) {
           GenerateKeyFromInt(
@@ -7074,7 +7271,9 @@ class Benchmark {
         found++;
       }
 
-      for (int j = 0; j < FLAGS_seek_nexts && iter_to_use->Valid(); ++j) {
+      Slice endKey;
+      auto computed_seek_nexts = 2500000 / FLAGS_threads;
+      for (int j = 0; j < computed_seek_nexts && iter_to_use->Valid(); ++j) {
         // Copy out iterator's value to make sure we read them.
         Slice value = iter_to_use->value();
         memcpy(value_buffer, value.data(),
@@ -7901,8 +8100,8 @@ class Benchmark {
 
   // Read and merge random keys. The amount of reads and merges are controlled
   // by adjusting FLAGS_num and FLAGS_mergereadpercent. The number of distinct
-  // keys (and thus also the number of reads and merges on the same key) can be
-  // adjusted with FLAGS_merge_keys.
+  // keys (and thus also the number of reads and merges on the same key) can
+  // be adjusted with FLAGS_merge_keys.
   //
   // As with MergeRandom, the merge operator to use should be defined by
   // FLAGS_merge_operator.
@@ -8151,8 +8350,8 @@ class Benchmark {
   // parameter
   // will run the same benchmark without transactions.
   //
-  // RandomTransactionVerify() will then validate the correctness of the results
-  // by checking if the sum of all keys in each set is the same.
+  // RandomTransactionVerify() will then validate the correctness of the
+  // results by checking if the sum of all keys in each set is the same.
   void RandomTransaction(ThreadState* thread) {
     Duration duration(FLAGS_duration, readwrites_);
     uint16_t num_prefix_ranges = static_cast<uint16_t>(FLAGS_transaction_sets);
