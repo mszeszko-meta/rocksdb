@@ -13,6 +13,12 @@ runs:
   steps:
   - name: Add msbuild to PATH
     uses: microsoft/setup-msbuild@v1.3.1
+  - name: Set up JDK 8
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: "8"
+      architecture: x64
   - name: ccache
     uses: hendrikmuhs/ccache-action@v1.2
     with:
@@ -32,14 +38,16 @@ runs:
       CMAKE_HOME: C:/Program Files/CMake
       CMAKE_BIN: C:/Program Files/CMake/bin/cmake.exe
       CTEST_BIN: C:/Program Files/CMake/bin/ctest.exe
-      JAVA_HOME: C:/Program Files/BellSoft/LibericaJDK-8
       SNAPPY_HOME: ${{ github.workspace }}/thirdparty/snappy-1.2.2
       SNAPPY_INCLUDE: ${{ github.workspace }}/thirdparty/snappy-1.2.2;${{ github.workspace }}/thirdparty/snappy-1.2.2/build
       SNAPPY_LIB_DEBUG: ${{ github.workspace }}/thirdparty/snappy-1.2.2/build/Debug/snappy.lib
     run: |-
       # NOTE: if ... Exit $LASTEXITCODE lines needed to exit and report failure
       echo ===================== Install Dependencies =====================
-      choco install liberica8jdk -y
+      echo "JAVA_HOME=$Env:JAVA_HOME"
+      java -version
+      if(!$?) { Exit $LASTEXITCODE }
+      javac -version
       if(!$?) { Exit $LASTEXITCODE }
       mkdir $Env:THIRDPARTY_HOME
       cd $Env:THIRDPARTY_HOME
@@ -57,7 +65,6 @@ runs:
       if(!$?) { Exit $LASTEXITCODE }
       echo ======================== Build RocksDB =========================
       cd ${{ github.workspace }}
-      $env:Path = $env:JAVA_HOME + ";" + $env:Path
       mkdir build
       cd build
       & cmake -G "$Env:CMAKE_GENERATOR" -DCMAKE_BUILD_TYPE=Debug -DWIN_CI=1 -DPORTABLE="$Env:CMAKE_PORTABLE" -DSNAPPY=1 -DXPRESS=1 -DJNI=1 ..
